@@ -1,0 +1,952 @@
+\documentclass[12pt]{article}
+%\usepackage{fullpage}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage[left=1in,right=1in,top=1in,bottom=1in]{geometry}
+\usepackage{times}
+\usepackage{multicol}
+%\DeclareMathOperator*{\argmin}{arg\!\min}
+%\newcommand{\argmin}{\operatornamewithlimits{argmin}}
+
+%\usepackage{natbib}
+\parskip 0.05in
+%\doublespace
+
+
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{\z@}%
+                                  {-3.5ex \@plus -1ex \@minus -.2ex}%
+                                  {2.3ex \@plus.2ex}%
+                                  {\normalfont\bfseries}}
+\makeatother
+\begin{document}
+\noindent
+\footnotesize{
+\noindent
+%\textit{Proceedings of the 7th INFORMS Workshop on Data Mining and Health Informatics (DM-HI 2012)\\
+\noindent
+G.~Singh, B.~Avitall, H.~Lu, eds.}}
+
+\vspace{0.1in}
+\begin{center}
+    {\large\bf Using the Dynamics of Adaboost in Clinical Monitoring}\\
+    \vspace{0.3in}
+\end{center}
+
+\begin{multicols}{3}
+\begin{center}
+\textbf{Gobind Singh}
+
+Department of Bioinformatics\\
+University of Illinois at Chicago\\
+Chicago, IL\\
+\texttt{gsingh6@uic.edu}\\
+\columnbreak
+
+\textbf{Boaz Avitall}
+
+Department of Cardiology\\
+University of Illinois at Chicago\\
+Chicago, IL\\
+\texttt{bavitall@uic.edu}
+\columnbreak
+
+\textbf{Hui Lu}
+
+Department of Bioinformatics\\
+University of Illinois at Chicago\\
+Chicago, IL\\
+\texttt{huilu@uic.edu}\\
+
+\end{center}
+\end{multicols}
+
+
+
+\begin{center}
+    {\bf Abstract}\\
+\end{center}
+\noindent
+Medical alerts have been shown to provide positive benefit: such as reduced blood sugar variability \cite{Mastro}, and improved prescribing safety \cite{Raebel}.  Currently, the extent of preventable medical error is estimated at 40,000 fatalities per year \cite{Muse}.  The need for improved medical alerts has been recognized in a recent Joint Commission and FDA statement.  The percentage of alerts currently being ignored, or alert fatigue, is estimated at 70-80\% \cite{Gouveia}.  A purpose of this study is linking algorithmic complexity with graphical visual information.  Recently, we were involved with a telehealth, at-home monitoring study, which recorded patient vital sign readings, twice daily, for an approximate several month interval.  A publicly available dataset is sampled as well for comparative analysis.  Commonalities found in clinical data include: large datasets, high-dimensionality, large variety within the types of measurement, group differences, time series issues, missing data, and noise.  The data mining techniques of cross-validation and exploratory data analysis are utilized to deal with these issues.  For example, the dynamics of Adaboost weights have been shown to distinguish 'easy' from 'hard' classification points\cite{Capri2002}.  This feature is utilized to reduce computational cost, as well as create more balanced data.  Other data mining techniques are applied as well.  Next, three types of clinical alert are identified, static, sequential, and drifting; further, global monitoring, over all combinations of alerts, vs local alerts is achieved.  Finally, to address the issue of transparency, which has been related to the issue of alert fatigue, results are graphically interpretable.  Decision tree, forest plot, and sequence logo are presented.
+\noindent {\bf Keywords:}
+ensemble learning, algorithmic game theory, clinical health monitoring
+
+
+\section*{Introduction}
+Learning algorithms generate hypothesis describing a relationship between input and output data points.  The generation of these hypotheses is often black-boxed, or not entirely clear.  In this paper, we investigate the relationship between Adaboost weight dynamics and points with high classification uncertainty.  We seek to relate computational complexity of the hard boosting weights, with visually evaluated clinical assessment.  The entropy and computational number of iterations over the weight dynamics, are lower in 'easy' points, while the opposite holds true for both entropy and weight dynamics of 'hard' points.  Further, hard points are localized near the classification boundary, and easy points are spread further away.  It has been shown \cite{Capri2002}, that filtering 'easy', low-entropy weights from training incurs no significant loss in accuracy.  In this work, we utilize exploratory graphical statistics to link algorithm complexity with visual information.  An entropy-based Sequence Logo, along with other graphics, are discussed to promote transparency and utilization by clinicians.  The boosting weight dynamics of Adaboost are applied to data from a tele-health monitor alert study.  Graphical comparison of alerts from clinician evaluation and automation is designed to reduce alert fatigue, and provide users a means to evaluate an alert's scope and severity.
+
+\section*{Methods}
+
+\subsection{Patient Data-Set and Study Design}
+Two distinct data sets were obtained.  One from a home-based telehealth monitoring study, and the second data collected from patients in the Intensive Care Unit (ICU).  Thirty patients from each group were selected randomly, summary statistics include mean age X +- x, p-value q.  Data from the telehealth study, is privately available, obtained from an earlier study conducted in the Avitall lab.  The second dataset, MIMIC\_II, is publicly available at http:\/\/physionet.org\/mimic2\/.  Label alerts are based on a Kernel Regression confidence interval(CI=2); we define these alerts as static.  Next, we identify sequential alerts through based on rule-based list generation\cite{Pieri}.  We plan to include a refactored visual information component that will allow for clinician training of the algorithm.
+
+\subsection*{Alert System Workflow}
+\begin{figure}[h!]
+\begin{lstlisting}[frame=single]
+Adaboost:
+Train
+   -alerts labeled with confidence intervals
+   \emph{refactored visual inspection}
+   -parameter tuning: cross-validation and normalization
+Test
+   -distinct test-set
+Track
+    entropy weight dynamics
+Refactor
+   -xslt
+\end{lstlisting}
+\caption{SHERPA (Searches for Hard and Easy Refactored Points Alg.) Workflow.\label{fig:workflow1}}
+\end{figure}
+%Referring to figure~\ref{fig:workflow1}
+
+\subsection*{Adaboost}
+  Adaptive Boosting, known as Adaboost, has been described "as the best off-the shelf classifier in the world"\cite{elemStatLearn}, and listed in the top ten Machine Learning Algorithms.  Adaboost relies upon a weighted ensemble of voters$(x_1..x_n)$, whereby the final prediction(G(x)) is determined by the sign of the sum of each prior classifier $(G_1(x)..G_m(x))$(Eq1).
+\begin{equation}
+G(x)=\textup{sign}(\sum_{m=1}^{M}\alpha_{m}G_{m}(x) )
+\end{equation}
+A strong(non-linear) classifier thereby emerges from a successive set of weak(linear) learners.  For each Adaboost iteration, the observer weights$(x_1,..,x_n)$ are adapted to minimize the error of an exponential loss function.  The exponential function allows for a computationally simple, modular re-weighting, shown in (Eq2).  The voters are split into two groups, and correctly predicted observers receive reduced weights, while incorrect observers are exponentially increased.  Each classifier which follows, thus increasingly concentrates on the now higher weighted observations missed prior.
+\begin{equation}
+e^{-\beta }\cdot\sum_{y_{i}=G(x_{i})}{w_{i}}^{(m)} + e^{\beta }\cdot\sum_{y_{i}\neq G(x_{i})}{w_{i}}^{(m)}
+\end{equation}
+   Error optimization of the loss function, is based on convex optimization.  Weak learners are normally described as better than random.  A more motivating description is perhaps that fundamental to each weak learner is an inability to calculate the weights of each its features.  Minimization of error loss does not explain how Adaboost works.  The final strong classifier is based on the sign of weighted voters.  In other words, Adaboost is a weighted average over the sum of classifier weights; whereby a tree is used to explore the feature set space.  We use a decision tree to generate splits which minimize the classification error using a Gini measure, found to be less biased to categorical data than the entropy measure.
+\begin{equation}
+I_G(f)=\sum_{i=1}^{m}f_i(1-f_i)
+\end{equation}
+The ACM Computing Classification System (CCS rev.2012)
+\subsection{Randomness}
+BOOKS/Randomness.pdf
+event -generaotor borel space
+event space sigma field
+integral defined all borel sets
+riemenn integral not equal limit
+lebesgue integral equals limit
+second moment and variance handled by transform methods (ch4)
+compute prob : intervals proportional to length (d-c)/(b-a) ||  tabulatedGaussian pdfs zero-mean, unit-variance ,
+Q-function is complementary to Gaussian, used in communications as exceeding
+threshold of error event in detection system
+random object: ( a discrete time random process = time series)
+Kolmogorov extension theorem: if one can describe all pmfs that fit data
+px_n(x^n) for all n, then there exists a random process describing those pmfs
+(easy for iid, harder for general, difficult for continuous time\_series)
+probability of output event using corresponding prob.measure of inverse image
+(meet conditions\borel => measurable)
+Cesaro mean, sample avg., or time avg. : |{ wave functions\coordinate
+  functions }pg110
+unit pulse response pg111: kronecker delta
+event space: powerset  for discrete space, borel field for real line, product
+event space for producgt sample space,
+think of random process as mapping from sample space to space of sequences or
+waveforms
+multidimensional\_events
+marginal distributions for each random var. cannot be combined to
+jt.distribution because interrelationship info. is missing
+prob space must be consistent in that all different jts of an event must be
+the same, regardless how it is calculated(p133)
++++also look at Stanford code for random process of die... that algorithm can
+be used here how ?
+mod2 arithmetic or Galois field of 2 elements:p144 statdetect|classify,
+optimal classifier is MAP (max apriori)
+additive noise channel: output Y from input X f_x_|_y (second pdf of fx|y is important)
+stat\_estimate, regression,
+contintue p160ish
+A general
+approach towards modeling processes with memory is to filter memoryless
+processes, i.e., to perform an operation (a form of signal processing) on
+an input process which produces an output process that is not iid. In this
+section we explore several examples of such a construction, all of which
+provide examples of the use of conditional distributions for describing and
+investigating random processes. All of the processes considered in this section
+will prove to be examples of Markov processes, a class of random processes
+possessing a specific form of dependence among current and past samples.
+p170
+binary autoregressive process, binomial counting process, random walk, wiener
+process(zero-mean, variance sigma^2),
+general nonelementary probability
+gnep: conditional probability is defined as any function
+of x that satisfies (3.158). This is a descriptive definition which defines an
+object by its behavior when integrated, much like the rigorous definition of
+a Dirac delta function is by its behavior inside an integral. This reduces to
+the given constructive definitions of (3.47) in the discrete case and (3.53) in
+the continuous case with a well-behaved pdf. It also leads to a useful general
+theory even when the conditional pdf is not well defined.
+Stiejles integral notation as unified sums and integrals
+In addition to its use in deriving distributions for sums of independent
+random variables, the characteristic function can be used to compute mo-
+ments of a random variable (as the Fourier transform can be used to find
+moments of a signal). For example, consider the discrete case and take a
+derivative of the characteristic function MX (ju) with respect to u:
+The most important application of the characteristic function is its use in
+deriving properties of sums of independent random variables, as was seen in
+(3.109).
+The key new tools
+are the Borel–Cantelli lemma, which provides a condition ensuring conver-
+gence with probability one, and the Chernoff inequalit
+p261:
+assumption of a constant mean, independent of time, is an example
+of a stationarity property in the sense that it assumes that some property
+describing a random process does not vary with time (or is time-invariant).
+The process itself is not usually “stationary” in the usual literal sense of
+remaining still, but attributes of the process, such as the first moment in
+this case, can remain still in the sense of not changing with time. In the
+mean example we can also express this as
+EXt = EXt+τ ; all t, τ,
+ ∈ T . A function of two variables of this type is
+said to be Toeplitz [36, 31]. Much of the theory of weakly stationary processes
+follows from the theory of Toeplitz forms.
+second-order moment theory to design of llse (time-invariant, and varying)
+fir: finite impulse response
+power spectral density: fourier transform of autocorrelation function
+psd > 0 bochner thm. psd is white{discrete, weak-stat, zero-mean,
+  uncorrelated}
+geometric series summation formula, m*\sigma(r^k)= m/1-r, psd,
+fourier-transform | autoregressive model , weiner process
+can apply to binary markov process
+linear modulation: (no time window, instantaneous, alter waveform with
+another. waveform being altered is carrier, waveform doing altering is
+signal(model as random process))
+transfer info through medium: amplitude modulation of carrier sinusoid by
+signal (advantage is higher frequency wave travel in atmosphere better than
+sound)
+paley-weiner criteria
+parceval plancherel theorem
+Material
+has been added to put mean square convergence into the context of metric
+spaces, linear normed spaces, Hilbert spaces, Banach spaces, and L2 spaces
+to provide an explicit connection to the mathematical literature, especially
+functional analysis.
+By mimicking well-known properties of the real line, we have seen that
+there is a similar structure on the space L2 of all random variables with
+a finite second moment and that mean square convergence is simply an
+example of convergence in a metric space, a normed linear space, and a pre-
+Hilbert space
+L2 of all random variables with a finite second moment and that mean square convergence is simply an
+example of convergence in a metric space, a normed linear space, and a pre-
+Hilbert space
+Suppose A is a metric space (e.g., the real line, L2 , or any other normed
+linear space or pre-Hilbert space). If a sequence xn ∈ A has the property
+that the double limit
+lim lim d(xn , xm ) = 0,
+n.m→∞
+then the sequence is called a Cauchy sequence. In other words, a sequence
+{xn } is Cauchy if for every ǫ > 0 there is an integer N such that d(xn , xm ) <
+ǫ if n ≥ N and m ≥ N . A metric space is complete if every Cauchy sequence
+converges; that is, if {xn } is a Cauchy sequence, then there is an x in A for
+which x = limn→∞ xn . In the words of Simmons [62], p. 71, a complete metric
+308
+Second-order theory space is one wherein “every sequence that tries to converge is successful.” A
+standard result of elementary real analysis is that Euclidean space (with the
+Euclidean distance) is complete (see Rudin [61], p. 46).
+A complete inner product space is called a Hilbert space.
+A complete normed space is called a Banach space.
+property of Fourier transforms thatdifferentiation in the time domain corresponds to multiplication by −j2πf
+in the frequency domain
+theory of Wiener processes that they have the
+strange attribute of producing with probability one sample waveforms that
+are continuous but nowhere differentiable
+analogue -> digital requires sampling: w=1/Tseconds
+sampling expansion, pulse amplitude expansion
+Karhuen-Loeve expansion(dynamic spectral clustering?) all eigenvalues are
+equal, all terms in KL have same second moment
+
+
+\subsection{Event Detection}
+Cross-sectional techniques have limited relevance to time-series data, given non-stationarity within the data.  Intra-hour and intra-day structure is normally looked at.  Additionally, anomalies can be one-time(pulse) or systematic(level-shift).  Transfer function procedures such as multi-variate Box-Jenkins can be utilized.  Further, model techniques, such as ARIMA, GARCH, can be applied.  We apply kernel regression, which localizes the mean, and is an analogue to ARIMA methods.  A confidence interval (CI=2) is set at 95\%, for initial training of the alerts.  Next, we apply iSAX, a symbolic aggregate approximation, of the time series data.  Further, we present a Gaussian Hidden Markov Model clustering technique over the temporal data, to find distinct time periods with similar activity.
+Machine Learning for Sequential Data: A Review
+Thomas G. Dietterich
+cross-correlation with convolution
+http://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&sqi=2&ved=0CDUQFjAA&url=http%3A%2F%2Ftimemachine.iic.harvard.edu%2Fsite_media%2Fi%2Fumaatutorial.pdf&ei=xLGkUOngLKHUygGJn4CYCA&usg=AFQjCNG8sbn8yEMFM3afdJwwSFdPSSUniA&sig2=_6ky0NVQH3uq8KG_nkxH1w
+
+dygraphs
+http://dygraphs.com/
+
+kernel regression p-tree wolberg  book expert trading systems
+
+change point detection:http://www.research.ibm.com/PM/sigt98.ps
+http://stats.stackexchange.com/questions/12362/what-is-sequential-change-point-detection?lq=1
+
+\subsection*{Parameter Tuning, Weights Threshold}
+\raggedright To minimize inflated confidence caused by over-fitting dependencies between data instances, cross-validation is performed on the training-set only.  For example, given a stationary, time-series process, no change in overall mean or variance is experienced.  Training data is rescaled, to zero mean and unit variance, using z-normalization.  Further, cross-validated data is split explicitly by gender, patient-group, and age.  Post cross-validation, transformations are based solely upon parameter tuning of training-sets.
+\raggedright For each instance, an entropy score over the boosting number of weights is calculated.  A kernel density estimator, then smooths the entropy score for each data instance, thus providing a threshold to distinguish easy(low-entropy) from hard (high-entropy) points.
+
+\subsection*{Dynamic Features}
+ML and DM for Comp.Security:Meth_app
+normal value space false alarms
+association rules (magnus opus): alert when packet fail to meet a number of rules
+Magnum Opus rule mining tools. http://www.rulequest.
+com/MagnumOpus-info.html (2004)
+
+operational value derived rules generate many false-positive rate-> change within
+behavioural features-> how change over fixed window, time/events
+entropy, Mean and standard deviation of an attribute value, Percentage of events with a given attribute value, Percentage of events representing monotonically increasing (or decreasing) values, Step size of an attribute value
+percentage of TCP packets using the PSH flag, the range of values for the IP
+Identification field, and the average step size of the IP Fragment Offset. In
+addition, certain measurements among events have been found to be useful,
+such as the mean inter-arrival time of packets.
+
+models ... now look at change in behaviour
+multiple outputs:
+http://en.wikipedia.org/wiki/Structured_SVM
+
+
+CLARAty (CLustering Alarms for Root
+cause Analysis) 90, 92–96
+attribute-oriented induction (AOI),
+relationship to, 94
+cluster hypothesis, 100–101
+L-method
+
+PRIM TREES, BETTER THAN CART... LOOK AT TIBSHIRANI***
+
+coq formal proof of CLIQUE problem
+
+chart grammar norvig python implemenation
+http://aima-python.googlecode.com/svn/trunk/nlp.py
+
+\subsection*{severity testing}
+http://masi.cscs.lsa.umich.edu/~crshalizi/reviews/error/
+
+
+\subsection*{health definition}
+Introduced by Anderson [198] and formalized by Denning [199], anomaly detection
+has been used in an attempt to identify novel attack behaviors. However,
+two questions posed by Denning remain unanswered to this day:
+Soundness of Approach – Does the approach actually detect intrusions?
+Is it possible to distinguish anomalies related to intrusions from
+
+
+choice of model?? http://en.wikipedia.org/wiki/Reference_class_forecasting
+laplace model- meta analysis used in medical domain (wikipedia)
+OccamsRazor, disease actually usually opposit, patient not have 1 but many is
+more probable... so?
+http://lurnq.com/lesson/section/624/where-search-is-heading/
+http://en.wikipedia.org/wiki/DIKW_Pyramid
+those related to other factors?
+Choice of Metrics, Statistical Models, and Profiles – What metrics,
+models, and profiles provide the best discriminating power? Which
+are cost-effective? What are the relationships between certain types
+of anomalies and different methods of intrusion?
+
+What should be measured in order to model normal behavior and subsequently
+identify new types of intrusions with high accuracy? Choosing a feature with
+good predictive power for inclusion in a behavior model is as important as
+avoiding the choice of a likely irrelevant feature.
+A variety of statistical and data mining methods have been applied to attributes
+of network traffic in an attempt to identify attack behaviors. These
+have used three methods for feature extraction: (1) direct use of packet attributes
+(e.g., operationally variable, invariant, and flow attributes), (2) manually
+crafted features, and (3) automated feature extraction.
+
+1.misusebased: In misuse (signature) detection, systems are modeled
+upon known attack patterns and the test data is checked for occurrence
+of these patterns. Examples of signature-based systems include virus detectors
+that use known virus signatures and alert the user when the system has
+been infected by the same virus.
+avfs
+2.anomaly-based.  Such systems have a high degree of accuracy
+but suffer from the inability to detect novel attacks. Anomaly-based intrusion
+detection [199] models normal behavior of applications and significant
+deviations from this behavior are considered anomalous. Anomaly detection
+systems can detect novel attacks but also generate false alarms since not all
+anomalies are hostile
+
+Fan, W., Stolfo, S., Zhang, J.X., Chan, P.K.: AdaCost: Misclassification
+cost-sensitive learning. In: Proceedings of the Sixteenth International
+Conference on Machine Learning. Morgan Kaufmann, San Francisco,
+CA (1999) 97–105
+[212] Lavrac, N., Gamberger, D., Turney, P.: Cost-sensitive feature reduction
+applied to a hybrid genetic algorithm. In: Algorithmic Learning Theory.
+Volume 1160 of Lecture Notes in Artificial Intelligence. Springer-
+Verlag, New York, NY (1996) 127–134. Seventh InternationalWorkshop,
+ALT’96, Sydney, Australia, October 23–25, 1996. Proceedings
+[213] Wagner, D., Soto, P.: Mimicry attacks on host-based intrusion detection
+systems. In: Proceedings of the Ninth ACM Conference on Computer
+and Communications Security. ACM Press, New York, NY (2002) 255–
+264
+
+
+3.network-base
+SNORT
+
+IMPORTANT: mimicry can defeat sequence learning
+what does mimicry mean to health scenario?
+
+UNSUPERVISED
+An important aspect of rule learning is the simplicity and
+comprehensibility of the rules. The solution can be formulated as a 5-tuple
+(A, Φ, I, , ς), where A is the set of N attributes, Φ is the set of all possible
+values for the attributes in A, I is the set of input tuples which is a subset of
+the N-ary Cartesian product over A,  is the rule set, and ς is the maximum
+number of conditions in a rule.
+LERAD is an efficient conditional rule learning algorithm. A LERAD rule
+is of the form
+(αi = φp) ∧ (αj = φq) ∧ · · · ∧ ςterms ⇒ αk ∈ {φa, φb, . . . } ,
+where αi, αj , αk are the attributes, and φp, φq, φa, and φb are the values for
+the corresponding attributes. Algorithms for finding association rules (such
+as Apriori [58]) generate a large number of rules. But a large rule set would
+incur large overhead during the detection phase and may not be appropriate to
+attain our objective. We would like to have a minimal set of rules describing
+9 Data Cleaning and Enriched Representations for Anomaly Detection 149
+the normal training data. LERAD forms a small set of rules. It is briefly
+described here; more details can be obtained from [240].
+For each rule in , LERAD associates a probability p of observing a value
+not in the consequent:
+
+where r is the cardinality of the set in the consequent and n is the number
+of tuples that satisfy the rule during training. This probability estimation of
+novel (zero frequency) events is due to Witten and Bell [241]. Since p estimates
+the probability of a novel event, the larger p is, the less anomalous a novel
+event is. During the detection phase, tuples that match the antecedent but
+not the consequent of a rule are considered anomalous, and an anomaly score
+is associated with every rule violated. When a novel event is observed, the
+degree of anomaly (anomaly score) is estimated by:
+AnomalyScore =
+
+. (9.12)
+A nonstationary model is assumed for LERAD since novel events are
+“bursty” in conjunction with attacks. A factor t is introduced, which is the
+time interval since the last novel (anomalous) event. When a novel event occurred
+recently (i.e., small value for t), a novel event is more likely to occur at
+the present moment. Hence the anomaly should be low. This factor is therefore
+multiplied by the anomaly score, modifying it to t/p. Since a record can
+deviate from the consequent of more than one rule, the total anomaly score
+of a record is aggregated over all the rules violated by the tuple to combine
+the effect from violation of multiple rules:
+Total Anomaly Score =
+
+, (9.13)
+where i is the index of a rule which the tuple has violated. The anomaly score
+is aggregated over all the rules. The more the violations, the more critical the
+anomaly is, and the higher the anomaly score should be. An alarm is raised
+if the total anomaly score is above a threshold.
+We used the various feature representations discussed in Sect. 9.4.1 to
+build models per application using LERAD. We modified the rule generation
+procedure enforcing a stricter rule set. All the rules were forced to have system
+
+call in the antecedent since it is the key attribute in a host-based system. The
+only exception we made was the generation of rules with no antecedent.
+
+Rete Algorithm (Rule Evaluation)
+wikipedia
+Schneir article in DrDobbs
+
+http://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&cad=rja&ved=0CDkQFjAB&url=http%3A%2F%2Fdash.harvard.edu%2Fbitstream%2Fhandle%2F1%2F4100248%2FHonaker_MissingValues.pdf%3Fsequence%3D2&ei=TbmkUMIo4dXIAZyfgfAG&usg=AFQjCNGyg069ujhK1-G7UbyWd_GVg9Vb4w&sig2=VhszPpiEI57mHycgWd_yGA
+
+SUPERVISED:
+pomdp
+generative (markov single step)
+CONDENSATION (kalman filter)
+inference (potentials = denormalized probability functions; clique potential, batch-mode, EM handle missing)
+
+action (alarm, noalarm)
+attacker(disease)
+
+does alarm state effect attacker if not, is independent, and no memory v reflect only isntantaneous state,
+then partially observed markov chain POMDP exp-hard
+
+root cause analysis, clustering alarms, Julisch K.
+
+Jones, A., Li, S.: Temporal signatures for intrusion detection. In: Proceedings
+of the Seventeenth Annual Computer Security Applications
+Conference. IEEE Press, Los Alamitos, CA (2001) 252–261
+Salvador, S., Chan, P., Brodie, J.: Learning states and rules for time series
+anomaly detection. In: Proceedings of the Seventeenth International
+Florida AI Research Society Conference. AAAI Press, Menlo Park, CA
+(2004) 306–311
+
+Witten, I.H., Bell, T.C.: The zero-frequency problem: Estimating the
+probabilities of novel events in adaptive text compression. IEEE Transactions
+on Information Theory 37 (1991) 1085–1094
+
+zero-frequency vs mimicry
+
+\subection{logical depth}
+[1] Jim Crutchfield & CRS, "Thermodynamic Depth of Causal States: Objective Complexity via Minimal Representation", Physical Review E 59 (1999): 275--283 (PDF), cond-mat/9808147. It explains why thermodynamic depth, a notion advanced by the late, great Heinz Pagels, while nifty in concept and certainly not just Yet Another Complexity Measure, doesn't work very well as originally proposed, and what needs to be changed to make it work, namely adding causal states. (In the words of the poet, "we subsume what we do not obliterate.")
+logical depth... UofC prof
+
+https://en.wikipedia.org/wiki/Pareto_distribution
+http://masi.cscs.lsa.umich.edu/~crshalizi/research/tsallis-MLE/tsal.R
+Anomaly Prediction in Mechanical System Using Symbolic Dynamics
+http://masi.cscs.lsa.umich.edu/~crshalizi/notebooks/tsallis.html
+
+
+
+\subsection{Sequence Learning}
+Sequence Learning relies on evaluating is found closely related to psychological aspects of human thinking
+We are sympathetic to the arguments advanced by Fleming et al. [52] that
+treatment differences observed in the early stages of a trial may occur for a variety
+of reasons, and that the primary purpose of a sequential design is to protect
+against unexpectedly large treatment differences. Therefore, Fleming et al.
+advocate using group sequential designs which preserve the sensitivity to lateoccurring
+survival differences that a fixed sample design based on a single
+analysis would have. In addition, they argue that if the final analysis of a group
+sequential design is reached, then one would like to proceed, as much as possible,
+as if the preliminary analyses had not been done and a fixed sample design
+had been used.
+To achieve these ends, Fleming et al. present designs in which the level of
+significance at which an intermediate analysis is performed increases as the
+trial progresses, and such that the testing level of significance for the final analysis
+is close to the overall level of  . Their proposal fulfills the ethical requirement
+of protecting patients while not creating substantial additional difficulties
+in the data analysis. The designs are characterized by K, the number of planned
+analyses,  , the overall significance level, and by   , the probability of terminating
+the trial early if the null hypothesis is true. The fraction  is, in some
+sense, the proportion of the overall probability of rejecting the null hypothesis
+which is used up prior to the final analysis. If we denote the testing levels of
+significance for the K analyses by  1 ,  2 , ...,  K then specifying  is equivalent
+to specifying the ratio of  K and  , i.e., R =  K /  . This ratio indicates how close
+to the overall level  the final analysis is to be performed, and reflects the effect
+which the sequential nature of the design is allowed to have.
+Table 18.5 presents a subset of the designs described in Fleming et al. [52] .
+The table covers the cases specified by  = 0.05, K = 2, 3, 4, and 5 and  = 0.1,
+0.3 and 0.5. For example, if three analyses were planned and it was important
+to keep the ratio R high, i.e.,  = 0.1 so that R = 0.04831/0.05 = 0.97, then the
+testing significance levels would be  1 = 0.00250,  2 = 0.00296 and  3 = 0.04831.
+On the other hand, if a more liberal stopping criterion was desirable, the design
+with  = 0.5 would result in testing significance levels of  1 = 0.01250,  2 =
+0.01606 and  3 = 0.03558 with R = 0.03558/0.05 = 0.71.
+using and understanding med stat
+
+\subsection{cost sensitive modeling}
+8.2.1 Cost Factors
+Damage cost, DCost, characterizes the maximum amount of damage inflicted
+by an attack when intrusion detection is unavailable or completely ineffective.
+Response cost, RCost, is the cost to take action when a potential intrusion
+is detected.
+Consequential cost, CCost, is the total cost caused by a connection
+and includes DCost and RCost as described in detail in Sect. 8.2.2. The
+operational cost, OpCost, is the (computational) cost inherent in running an
+IDS.
+8.2.2 Cost Models
+The cost model of an IDS formulates the total expected cost of the IDS. In
+this paper, we consider a simple approach in which a prediction made by a
+given model will always result in some action being taken. We examine the
+cumulative cost associated with each of these outcomes: false negative (FN),
+false positive (FP), true positive (TP), true negative (TN), and misclassified
+hits. The costs associated with these outcomes are known as consequential
+costs (CCost), and are outlined in Table 8.1.
+FN Cost: cost of not detecting an intrusion, damage cost associated with the particular type of intrusion it, DCost(it).
+TP Cost is the cost incurred when an intrusion is detected and some action
+is taken. We assume that the IDS acts quickly enough to prevent the damage
+of the detected intrusion, and therefore only pays RCost(it).
+FP Cost is the cost incurred when an IDS falsely classifies a normal connection
+as intrusive. In this case, a response will ensue, and we therefore pay
+RCost(i), where i is the detected intrusion.
+TN Cost is always 0, as we are not penalized for correct normal classification.
+Misclassified Hit Cost is the cost incurred when one intrusion is incorrectly
+classified as a different intrusion – when i is detected instead of it. We take
+a pessimistic approach that our action will not prevent the damage of the
+intrusion at all. Since this simplified model assumes that we always respond
+to a predicted intrusion, we
+RIPPER: inductive rule learner
+      computes rule sets, ordered/unordered
+Fan et al. proposed
+a variant of AdaBoost for misclassification cost-sensitive learning [211].
+Within research on feature-cost-sensitive learning,
+
+feature elimination:(reduce costs)
+Lavrac et al. applied a hybrid
+genetic algorithm effective for feature elimination [212].
+
+many small models better than 1 large one
+
+\subsection*{spatial analysis}
+health disparities: Lorenz curve
+Choropleth map legend design for visualizing community health disparities
+ARGSIS: 2.5D http://danieljlewis.org/2011/05/03/network-population-density-for-southwark/
+spatial\_surveillance.pdf(auton-lab)
+kulldorf's score satscan
+fast spatial scan
+http://onlinelibrary.wiley.com/doi/10.1111/j.1467-9868.2011.01014.x/abstract
+LICORS: Light Cone Reconstruction of States for Non-parametric Forecasting of Spatio-Temporal System
+
+\subsection*{ROC, Accuracy, Assessment}
+Adaboost as wrapper-class to the Scikit-Learn.Ensemble module.  ROC scores are defined as
+Unlike precision, TP rate describes the fraction of occurrences of a connection
+class that were correctly labeled. Using the same notation as in the definition of
+precision, TP = P∩W
+W .
+http://www.siam.org/proceedings/datamining/2010/dm10_057_abrahamz.pdf
+
+
+\subsection*{medical statistics}
+
+t are some examples of when I should use more than a two-level hierarchical model? Can I use a spike-slab coefficient model with a t-distributed prior for the slab rather than a normal? If I assume that my model is a priori wrong (but still useful), what are some recommended ways to choose how many interactions to use in the model? Finally, how would you recommend handling correlated / collinear variables (such as daily average temperature and daily average morning temperature)?
+
+As you can probably tell, this isn’t my area of expertise (I’m an ophthalmologist with a PhD in biochemistry) but I like to be able to justify my decisions on how to analyze data
+
+Peter Carbonetto says:
+September 7, 2012 at 5:47 pm
+People in statistical genetics, myself included, have been thinking about these issues quite a bit because the choice of prior can influence what genes (or, more generally, genetic loci) you decide are associated with a disease, or complex trait.
+
+For example, some people argue that most of the effects on a complex trait will be very small, and a few are large. In this case, the most appropriate prior would be a spike-and-slab in which both the spike and slab are normal densities, and the slab is much more spread out, thereby allowing for larger coefficients (this was an approach we recently advocated; see http://arxiv.org/abs/1209.1341).
+
+There are, of course, many alternatives, and there is no single best approach. One alternative is to have a “scale mixture” (e.g. http://dx.doi.org/10.1371/journal.pgen.1000130) that is very spread out so that it allows for the possibility of large regression coefficients, but most of the mass is concentrated near zero. Based on my own experience on working in problems in genomics, I find that it is more natural to specify priors using the spike-and-slab.
+
+Peter
+
+http://www.cs.ubc.ca/~pcarbo/
+http://www.cs.ubc.ca/~pcarbo/lp.pdf
+http://www.cs.ubc.ca/~pcarbo/ldpc.pdf
+https://projects.coin-or.org/Ipopt
+
+
+
+http://plus.maths.org/content/os/issue44/features/spiegelhalter/index
+what is uncertainty? bayesian perspective... cant separate uncertainty from
+human-judgement... subjectivist or personalist
+"I take a view that is sometimes called subjectivist or personalist: that uncertainty is not really a property of the thing you're looking at, but a property of your understanding of it. For example, before I toss a balanced coin, I think we'd both agree on the chance of a head coming up being 50:50. Now suppose I toss it, look at what comes up, but don't show you the coin. Then my probability has changed because of the new information I have, but yours is still 50:50. So probabilities don't just depend on the event, but on who is making the judgement and what they know (or think they know). In a Bayesian framework probabilities can be associated to almost anything that is unknown to you, from whether you're going to live to 100 to who is going to be the next president of the USA."
+
+
+how to assess quality of alarm:
+kaplan-meier: actuarial survival curves
+log-rank/mantel-haenszel
+proportional hazards regression
+sample size
+inten to treat / sequential analy
+relative risk models / poisson regression model
+using understanding med stat, de matthews vt farwell
+micromort : risk eval wikipedia page
+http://en.wikipedia.org/wiki/Micromort
+https://www.scientificamerican.com/article.cfm?id=how-to-gain-or-lose-30-minutes-of-life-everyday
+decision analysis:
+http://en.wikipedia.org/wiki/Decision_analysis
+chloropeth
+ggplot2 Elegant R graphics Book in BOOKS/ pg 80 Revealing Uncertainty!!!
+stat_summary
+
+
+
+** The spread of evidence-poor medicine via flawed social-network analysis, lyon, russell 2011
+
+http://alumni.stanford.edu/get/page/magazine/article/?article_id=53345
+
+\subsection*{ADT idea}
+
+We are investigating disease/symptom clusters:
+
+1.The NLP dataset is required to build the prior probabilities, a disease cluster's symptoms, and their frequency.
+
+2.Using a machine learning framework we will generate posterior disease probabilities, P(D|symptoms).
+
+3.Finally, we are interested in calculating disease likelihood independent of symptomology, P(D).
+
+
+
+\subsection*{Exploratory Data Analysis }
+mechanical turk:
+http://vis.stanford.edu/papers/crowdsourcing-graphical-perception
+best paper! mike bostock d3.js author
+andrew bostock interview with knuth not mike!!
+http://matpalm.com/blog/2010/06/04/5-minute-ggobi-demo/
+http://rangevoting.org/RangeVoting.html
+
+Exploratory graphical statistics can influence and help guide interpretation of data.  Graphics have been created using the python libraries Matplotlib and Pandas, the ggplot, and rMeta module of R, and the d3.js Javascript library.  These packages are the current state-of-the-art, in a rapidly developing field.  Path plots, parallel , adjusted odds ratio, dirchilet mixture models, and QQ plots were generated using standard packages.  The SequenceLogo-Type Alert Graphic was independently developed.  The design principle of maximizing information to pixel space was followed in its design.
+Online Programming Tutor
+
+http://tenxer.github.com/xcharts/
+
+light-cones
+http://gephi.org/
+http://www.kitware.com/InfovisWiki/index.php/Main_Page
+http://www.visualcomplexity.com/vc/
+http://metaoptimize.com/qa/questions/473/large-scale-graph-visualization
+http://www.renci.org/~sthakur/pubs/isvc09_SidThakur_Data_Vases.pdf
+ADAMS:
+http://www.youtube.com/watch?v=P6KceexcfZo&feature=plcp
+active learning online time segmentation!!
+
+---------------------------------------------------------
+http://cgm.cs.mcgill.ca/~godfried/publications/similarity.pdf
+visualization of rythm similarity with split tree
+https://graphics.stanford.edu/wikis/cs448b-11-fall/Exploratory_Data_Analysis
+Clearly, varying the font size does not change the numerator in the ratio that yields data density (the size of the data matrix), so I assume you mean to make the overall graph area smaller by decreasing the font size. But then you end up with a smaller visualization, so the "density" (of the data) increases - which is rather intuitive, don't you think?
+
+I think the real question is whether that definition of data density is really helpful. Having a small visualization with great data density might be hard to decode for the viewer. I am not sure whether Tufte considers the role of aesthetics at all. In fact, it seems to me that Tufte is overly concerned with quantifying the quality of visualization by numbers. Data density is one example, but we have also seen "Lie Factor" and "Data-ink ratio". While I appreciate those definitions and numbers as a good heuristic, I hesitate to take them too important.
+
+Lastly, a quick word about today's lecture: I thought it was really cool to assess statistical significance by visual perception ("find the real data"). I wonder whether this can actually be made admissible in science (given that you have enough people spotting the real data). After all, you could argue that our visual perception is a model in a similar way that that the Gaussian distribution is a model. I would be interested in hearing more about this. And Benford's Law is super cool!
+
+http://metaoptimize.com/qa/questions/1044/what-kind-of-visualization-graphs-exist-what-are-they-best-suited-for
+-------------------------------------------------------------
+\subsection*{Perceptual Organization}
+book in BOOK/ tensor voting
+http://www.science20.com/mark_changizi/eye_computer_turning_vision_programmable_computer
+
+
+
+\subsection*{Fractal probability}
+multi-fractal
+two-value canonical measure, generalization of bernoulli binomial measure
+The latter generalizes Bernoulli and
+provides an especially short path to negative dimensions, divergent moments, and divergent
+(i.e., long range) dependence
+
+\subsection*{Philosophy and ML}
+causation
+
+
+\subsection*{Knowledge Representation and Reasoning}
+possible worlds: truth negation disjunction
+unification: equality skolem
+searching ahead: minimax
+
+Clustering Intrusion Detection Alarms to Support
+Root Cause Analysis
+KLAUS JULISCH
+IBM Research, Zurich Research Laboratory
+
+PRACTICAL ALARM CLUSTERING
+This section describes a heuristic algorithm for solving the alarm clustering problem.
+In addition, it addresses the issue of setting the min size parameter. First, however,
+the following result is of importance:
+Proposition 2. Let L be an alarm log, min size 2 N an integer, and Gi, i =
+1; : : : ; n, a family of generalization hierarchies. The alarm clustering problem
+(L; min size; G1; : : : ; Gn) is NP-complete.
+Proof. The proof is obtained by reducing the CLIQUE problem [Papadimitriou
+1994] to the alarm clustering problem. In the CLIQUE problem, we are given a
+graph G and an integer k. The goal is to decide whether G contains a k-clique, i.e.
+a fully connected subgraph of size k. To reduce the CLIQUE problem to the alarm
+clustering problem, we assign a separate attribute to each node in G. For each edge
+in G, we create an alarm. The two attributes that correspond to the end points
+of the edge are set to 1, while all the other attributes are set to zero. The set of
+all alarms constitutes the alarm log, min size is set to
+􀀀k
+2
+
+, and the generalization
+
+Hellerstein and Ma [2000] pursue the same goal by means of
+visualization, periodicity analysis, and m-patterns (a variant of association rules
+requiring mutual implication).
+\subsection*{CLIQUE}
+http://arxiv.org/abs/1203.1754
+http://11011110.livejournal.com/260838.html
+http://cstheory.stackexchange.com/questions/5282/parameterized-complexity-of-graph-intersection-number
+
+Approximability of the vertex cover problem in power law graphs, Mikael Gast and Mathias Hauptmann, arXiv:1204.0982. I think there should be more work on algorithms that take advantage of the properties of web graphs and social networks to compute properties of these graphs more quickly than they can be computed in the worst case, and this is an example: it gets a better approximation ratio for vertex cover than can be achieved in the worst case, for any graph whose degree distribution obeys a power law.
+http://11011110.livejournal.com/260838.html
+
+http://arxiv.org/abs/1203.1754
+\subsection*{bigdata}
+JUDY http://judy.sourceforge.net/examples/index.html
+http://en.wikipedia.org/wiki/Category:Algorithms_and_data_structures_stubs
+
+\subsection*{context instead of variables}
+precycle
+alt to certainty factors
+line-diagram labeling by constraint satisfactino
+Norvig
+\subsection*{English Grammar}
+\subsection*{Alarm Grammar syntax}
+openMRS-module extended to include auto-alarm
+clinical study to assess:sample-size
+NL annotation for ML book
+Kappa statistic, cohen, fleiss kappa stats for comparing texts
+i2b2 NLP medical conference
+
+
+\subsecction*{game-theory}
+    Mapping the complexity of ecological models", Ecological Complexity forthcoming (2007) [PDF]
+Nicolas Brodu
+A. James and M. J. Plank, "On fitting power laws to ecological data", arxiv:0712.0613
+CRS and Dave Albers, "Symbolic Dynamics for Discrete Adaptive Games," cond-mat/0207407, SFI Working Paper 02-07-031. Why the hyper-stylized game-theory models which have taken over econophysics in the last few years are not complex, dynamically or statistically. (We were going to call it "no chaos and little complexity in the minority game," but settled on something more neutral.) Which isn't to say they're not worth studying; just that they need to justify themselves by what they can tell us about real(er) systems. Submitted to Physics Letters A. (Update, 2003: Revised to placate an unusually appalling referee.)
+
+\subsection*{grammar of time series transducer drta  }
+http://johnbender.us/2013/01/09/math-envy-and-coffeescripts-foibles-2/
+how to semantically tell the difference between groups
+
+%find the gap where you dont understand...keep pushing until you are in an area you are totally new
+behaviour trees, faster/better than fsms.. easier to interpret
+http://nakkaya.com/alter-ego.html
+
+learn grammar from alert time series data
+
+in<blackbox>out => statistics => stochastic grammer => finite-state transducer
+
+DRTA timed automation, determine real-time automation (dfa deterministic finiate automata)
+
+S.Seung: operant match nash equilibrium temporal game
+         operant match -> synaptic plasticity
+         (double ring) network model of head-direction system
+
+transducer (sequential machine) opt/min model => causal/comp. sheet
+/feature
+ghost_in_machine engle waernick
+
+comp. neurogenetic modelling network (python pyneurogen)
+
+sequel https://sequel.lille.inria.fr/
+
+\subsection{CSSR causal state splitting reconstruction}
+http://masi.cscs.lsa.umich.edu/~crshalizi/research/tsallis-MLE/
+http://arxiv.org/abs/math.ST/0701854
+http://arxiv.org/abs/physics/0607283
+http://masi.cscs.lsa.umich.edu/~crshalizi/CSSR/
+logical-depth/casaulity/cssr
+Rob Haslinger, Kristina Klinkner and CRS, "The Computational Structure of Spike Trains", Neural Computation 22 (2010): 121--157, arxiv:1001.0036. Applying CSSR to real neural spike trains to recover their computatinal structure and statistical complexity, and detect the influence of external stimuli.
+"Revisiting Lévy flight search patterns of wandering albatrosses, bumblebees
+and deer", Nature 449 (2007): 1044--1048
+"From Gene Families and Genera to Incomes and Internet File Sizes: Why Power Laws are so Common in Nature", Physical Review E 66 (2002): 067103 [This is, as I said, perhaps the most deflating possible explanation for power law size distributions. Imagine you have some set of piles, each of which grows, multiplicatively, at a constant rate. New piles are started at random times, with a constant probability per unit time. (This is a good model of my office.) Then, at any time, the age of the piles is exponentially distributed, and their size is an exponential function of their age; the two exponentials cancel and give you a power-law size distribution. The basic combination of exponential growth and random observation times turns out to work even if it's only the mean size of piles which grows exponentially.]
+
+Nima Dehghani, Nicholas G. Hatsopoulos, Zach D. Haga, Rebecca A. Parker, Bradley Greger, Eric Halgren, Sydney S. Cash, Alain Destexhe, "Avalanche analysis from multi-electrode ensemble recordings in cat, monkey and human cerebral cortex during wakefulness and sleep", arxiv:1203.0738 [Ummm, we explain why you can't use R2 that way in the paper you cite...]
+
+Imen Kammoun, Vernoique Billat and Jean-Marc Bardet, "A new stochastic process to model Heart Rate series during exhaustive run and an estimator of its fractality parameter", arxiv:0803.3675 [Includes statistical criticism of the common, but deeply unsatisfying, "detrended fluctuation analysis" method of estimating the Hurst exponent.]
+
+Power-law distributions in binned empirical data", arxiv:1208.3524
+
+A new stochastic process to model Heart Rate series during exhaustive run and
+an estimator of its fractality parameter
+
+http://masi.cscs.lsa.umich.edu/~crshalizi/reviews/error/diagnostic-testing.html
+
+\subsection{point-processes}
+http://spacepy.lanl.gov/doc/poppy.html
+Michael Golosovsky and Sorin Solomon, "Stochastic Dynamical Model of a Growing Citation Network Based on a Self-Exciting Point Process", Physical Review Letters 109 (2012): 098701
+Henrik Hult and Gennady Samorodnitsky, "Large deviations for point processes based on stationary sequences with heavy tails", Journal of Applied Probability 47 (2010): 1--40
+
+
+\subsection{appendix}
+boilerplate for web-books::https://github.com/PascalPrecht/wbb
+
+
+\section*{Results}
+scatterplot:
+splom with histogram and curve
+
+time series:
+Box-Jenkins,Gaussian Kernel, Pulse-Long, iSAX, transformed data(with residuals histogram subplot)
+HMM temporal segmentation
+http://arxiv.org/abs/0906.2717 Mikosch paper, guy who disproved copulas
+ROC:
+cross-validate, adaboost, stump, trees, MAB, Thomspson
+
+Graphic:
+QQ plots, forest(usingundmedstat p261), sequence logo,
+
+\subsection(power-law)
+power-law, network percolation...
+[25] Aaron Clauset, CRS, and M. E. J. Newman, "Power-law distributions in empirical data", arxiv:0706.1062, SIAM Review 51 (2009): 661--703. What power laws are (not just sort of straight lines on log-log plots), how to estimate their parameters from data (use maximum likelihood, not linear regression), and how to tell if you have one (by actual hypothesis testing). With accompanying code in R and Matlab. (More.)
+http://masi.cscs.lsa.umich.edu/~crshalizi/notebooks/power-laws.html
+Power laws turn out to result from a kind of central limit theorem for
+multiplicative growth processes,
+an observation which apparently dates back to Herbert Simon, and which has
+been rediscovered
+by a number of physicists (for instance, Sornette).
+Reed and Hughes have established an even more deflating explanation (see
+below).
+Now, just because these simple mechanisms exist, doesn't mean they explain any particular case, but it does mean that you can't legitimately argue "My favorite mechanism produces a power law; there is a power law here; it is very unlikely there would be a power law if my mechanism were not at work; therefore, it is reasonable to believe my mechanism is at work here." (Deborah Mayo would say that finding a power law does not constitute a severe test of your hypothesis.) You need to do "differential diagnosis", by identifying other, non-power-law consequences of your mechanism, which other possible explanations don't share. This, we hardly ever do.
+http://arxiv.org/abs/0706.1062
+
+
+\section*{Discussion}
+http://masi.cscs.lsa.umich.edu/~crshalizi/research/
+The creativity and focus of Machine Learning is driven in the context of classification.  Statistically, understanding variable effects and importance is not requisite for an increased prediction score.  In bioinformatics, with the identification of significant gene interactions, Machine learning methods have been created to deal with small samples and unbalanced data\cite{Tib} to has been used to deal with small sample size and unbalance data.  However, in the clinical setting, black-box solutions are not well-received; interpretability is important.  Therefore, in this study, we have made an effort toward graphical representations, which show variable inter-relationship and importance, as well as allow visual assesment of scope and power.
+
+  Sequential learning improved alert detection, and provided for a graphical representation as well.  Further, neuro-psychological studies indicate human reasoning is based on context, costs, and rewards in sequence[].  Static human vs machine metrics are criticized as being overly simplisitic, given human evaluation and reasoning is often based on context, rewards, and cost in sequence.  In fact, when machines are re-evaluated in the more complex domain, human judgement is found equal or on par with machines[cite].
+
+Algorithmic game-theory is attractive in the clinical setting, allowing for cost-optimization, sequential learning, and imperfect information to be incorporated.
+Alert fatigue is an important issue.
+
+Breiman discusses the between variables Increased prediction scores are not requisite focus is The application of Machine Learning is not often seen in clinical study.  Vice-versa, issues such as confidence intervals, model structure,
+
+ght be interested in Leo Breiman's 'Statistical Modeling - The two cultures', where this is covered in depth(recognition.su/wiki/images/8/85/Breiman01stat-ml.pdf) Furthermore, there are reasons for this approach -- if you want humans to interprete things, for example.
+
+The labeling of health alerts is accomplished by addressing the time-series statistical issues, of dependency and model fitting.  This helps achieve the model accuracy shown in Fig, motivates exploratory data analysis(Fig), and provides some validation for use of Machine Learning for in health monitoring.  Basically, a two-step refactoring for health alerts was used.  First, a z-normalized cross-validation was applied to reduce dependency, and next kernel regression, an analogue of ARIMA models, and a local mean-weighted , establishes confidence-interval.  Refactoring for alert values is shown in Fig., with a mean change of nos. over the full alert state.
+
+   However, although this methodology leverages Machine Learning and some statistics, it does not formulate an actual model for health vs disease, an issue we would like to address by establishing a bottom-up join for symptoms to isease, P(D|symptoms), rather than the top-down prediction of disease to symptoms, P(symptoms|D).  Further, our model can be extended to incorporate sequential learning, and active learning approaches.  Defining alerts as sequence motifs gives a more robust definition of health-states vs disease-states, allows to better deal with time series issues within the data, and provides an analogue to human reasoning, which is based on sequential learning.  Active learning, training of the algorithm by human judgment is important to further increase interpretability.
+
+  An alert defined as sequence motifs will further allow from threshold to  domains training by human defined alerts, pushes the complexity the model can address, and perhaps better reduce alert fatigue through incorporation of clinical judgement.
+
+
+
+
+
+
+
+
+References should be numbered and listed at the end of the paper in the section References.
+Within the text, they should be cited by the corresponding numbers, enclosed in brackets,
+%e.g., \cite{Sundaramoorthietal2009}, or \cite{Sundaramoorthietal2010a, Sundaramoorthietal2010b,coultetal2010,changwyskwang2006}  for multiple references.
+Examples of reference formats are shown below.
+\begin{table}[!h]
+\centering
+\begin{tabular}{|r|r|r|r|}
+  \hline
+  1 & 0.8151 & 0.9401 & 0.4640 \\   \hline
+  2 & 0.5028 & 0.6623 & 0.5464 \\   \hline
+  3 & 0.1423 & 0.0884 & 0.0465 \\   \hline
+  4 & 0.3435 & 0.2900 & 0.7783 \\   \hline
+\end{tabular}
+\caption{Caption}
+\end{table}
+
+
+\bibliographystyle{plain}
+
+
+\begin{thebibliography}{1}
+
+\bibitem{Capri2002}
+Caprile, B., Furlanello, C., Merier, S., 2002, ``The Dynamics of AdaBoost Weights Tells You What's Hard to Classify,'' arXiv:cs/0201014 [cs.LG].
+
+\bibitem{mimic2}
+Goldberger, A. L., Amaral, L. A. N., Glass, L., Hausdorff, J. M, Ivanov, P. Ch., Mark, R. G., Mietus, J. E., Moody, G. B., Peng, C.-K., Stanley, H. E., 2000, ``PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals,'' Circulation, [Circulation Electronic Pages; http://circ.ahajournals.org/cgi/content/full/101/23/e215].
+
+\bibitem{elemStatLearn}
+Hastie, T., Tibshirani, R., Friedman, J., 2001, The elements of statistical learning: data mining, inference, and prediction, Springer, New York.
+
+\bibitem{scikit}
+Pedregosa et al., 2011, ``Scikit-learn: Machine Learning in Python,'' Journal of Machine Learning Research 12, 2825-2830.
+
+\bibitem{mimic1}
+Saeed, M., Villarroel, M., Reisner, A. T., Clifford, G., Lehman, L., Moody, G. B., Heldt, T., Kyaw, T. H., Moody, B. E., Mark., R .G., 2001,``Multiparameter intelligent monitoring in intensive care II (MIMIC-II): A public-access ICU database,'' Critical Care Medicine 39(5), 952-960.
+
+
+\bibitem{VCI}
+Plemenos, M., Miaoulis,J., 2009, Visual Complexity and Intelligent Computer Graphics Techniques Enhancements
+
+
+\bibitem{kreimer}
+PMID:Quality \& safety. Alarming: Joint Commission, FDA set to tackle alert fatigue. Kreimer S.
+
+\bibitem{Mastro}
+John Mastrototaro, Ph.D., John B. Welsh, M.D., Ph.D., and Scott Lee, M.D.
+Practical Considerations in the Use of Real-Time Continuous Glucose Monitoring Alerts
+
+\bibitem{Muse}
+Trotter, F., Uhlman, D, Meaningful Use and Beyond Oreilly
+
+\bibitem{Raebel}
+Raebel MA, Carroll NM, Kelleher JA, Chester EA, Berga S, Magid DJ.
+Randomized trial to improve prescribing safety during pregnancy.
+J Am Med Inform Assoc. 2007 Jul-Aug;14(4):440-50. Epub 2007 Apr 25.
+
+\bibitem{Gouveia}
+Gouveia WA. Am J Health Syst Pharm. 2010 Apr 15;67(8):603-4; Alert fatigue: A lesson relearned.
+
+\bibitem{Hasanm}
+Hasan M, Al-Dorzi1, Hani M Tamim1, Antoine Cherfan, Mohamad A Hassan, Saadi Taher, and Yaseen M Arabi1, 2011, "Impact of computerized physician order entry (CPOE) system on the outcome of critically ill adult patients: a before-after study," BMC Medical Informatics and Decision Making 11:71
+
+\bibitem{Tsay}
+Chen, C. and Tiao, G.C. (1990) "Random level-shift time series models,
+ARIMA approximations, and level-shift detection". Journal of Business
+and Economics Statistics, 8, 83-97.
+
+\bibitem{Charf}
+Charfeddine,L. Guégan (2009) "Breaks or Long Memory Behaviour: An empirical Investigation" Documents de Travail du Centre d’Economie de la Sorbonne
+
+\bibitem{Schwaig}
+Schwaighofer A, Schroeter T, Mika S, Blanchard G. (2009) "How Wrong Can We Get? A Review of Machine Learning Approaches and Error Bars" Comb Chem High Throughput Screen."  Jun;12(5):453-68.
+
+\bibitem{Tib}
+Hastie T, Sobel E, Wu T, Chen Y, "Genome-wide association analysis by lasso penalized logistic regression." Authors: ; Lange, K Bioinformatics Vol: 25 Issue: 6 ISSN: 1367-4803 2009 Pages: 714 - 721
+
+\bibitem{Prie}
+Fawcett T, PRIE:A System for Generating Rulelists to Maximize ROC Performance.
+
+\bibitem{nursinghomefalls}
+Albert MV, Kording K, Herrmann M, Jayaraman A (2012) Fall Classification by Machine Learning Using Mobile Phones. PLoS ONE 7(5): e36556. doi:10.1371/journal.pone.0036556
+
+\end{thebibliography}
+\end{document}
